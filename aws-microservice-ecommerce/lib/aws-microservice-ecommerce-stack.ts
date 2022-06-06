@@ -3,6 +3,7 @@ import { Construct } from 'constructs';
 import { AttributeType, BillingMode, Table } from 'aws-cdk-lib/aws-dynamodb'
 import { Code, Function, Runtime } from 'aws-cdk-lib/aws-lambda';
 import * as path from 'path';
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 
 export class AwsMicroserviceEcommerceStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -20,15 +21,29 @@ export class AwsMicroserviceEcommerceStack extends Stack {
       billingMode: BillingMode.PAY_PER_REQUEST
     });
 
-    const lambdaFunction = new Function( this, 'ProductFuntion', {
 
-      runtime: Runtime.NODEJS_16_X,
-      handler: 'index.handler',
-      code: Code.fromAsset( path.join( __dirname, 'lambda-handler' ) )
+    const productLambdaFuntion = new NodejsFunction( this, 'ProductFunction', {
+
+      entry: path.join(__dirname, './scr/product.index.js'),
+
+      bundling: {
+        externalModules: [
+          'aws-sdk'
+        ]
+      },
+
+      environment: {
+        PRIMARY_KEY: 'id',
+        DYNAMODB_TABLE_NAME: productTable.tableName
+      },
+
+      runtime: Runtime.NODEJS_16_X
 
     });
 
 
+    //alow lambda to access dynamoDB Table
+    productTable.grantReadWriteData( productLambdaFuntion );
 
   }
 }
